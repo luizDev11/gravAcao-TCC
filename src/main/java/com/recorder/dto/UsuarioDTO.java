@@ -1,18 +1,35 @@
 package com.recorder.dto;
 
-
 import jakarta.validation.constraints.*;
 
 public class UsuarioDTO {
+    @NotBlank(message = "Nome é obrigatório")
+    @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
     private String nome;
-    private String cpf;
-    private String telefone;
-    private String email;
-    private String senha;
-    private String confirmarSenha;
-    private boolean termosAceitos;
 
-    // Getters e Setters
+    @NotBlank(message = "CPF é obrigatório")
+    @Pattern(regexp = "\\d{11}", message = "CPF deve conter 11 dígitos")
+    private String cpf;
+
+    @NotBlank(message = "Telefone é obrigatório")
+    @Pattern(regexp = "\\d{10,11}", message = "Telefone inválido")
+    private String telefone;
+
+    @NotBlank(message = "Email é obrigatório")
+    @Email(message = "Email inválido")
+    private String email;
+
+    @NotBlank(message = "Senha é obrigatória")
+    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+    private String senha;
+
+    @NotBlank(message = "Confirmação de senha é obrigatória")
+    private String confirmarSenha;
+
+    @AssertTrue(message = "Você deve aceitar os termos")
+    private boolean agreeTerms;
+
+    // Getters e Setters mantidos iguais
     public String getNome() {
         return nome;
     }
@@ -26,7 +43,8 @@ public class UsuarioDTO {
     }
 
     public void setCpf(String cpf) {
-        this.cpf = cpf;
+        // Remove formatação do CPF antes de armazenar
+        this.cpf = cpf != null ? cpf.replaceAll("\\D", "") : null;
     }
 
     public String getTelefone() {
@@ -34,7 +52,8 @@ public class UsuarioDTO {
     }
 
     public void setTelefone(String telefone) {
-        this.telefone = telefone;
+        // Remove formatação do telefone antes de armazenar
+        this.telefone = telefone != null ? telefone.replaceAll("\\D", "") : null;
     }
 
     public String getEmail() {
@@ -42,7 +61,7 @@ public class UsuarioDTO {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.email = email != null ? email.trim() : null;
     }
 
     public String getSenha() {
@@ -61,36 +80,25 @@ public class UsuarioDTO {
         this.confirmarSenha = confirmarSenha;
     }
 
-    public boolean isTermosAceitos() {
-        return termosAceitos;
+    public boolean agreeTerms() {
+        return agreeTerms;
     }
 
-    public void setTermosAceitos(boolean termosAceitos) {
-        this.termosAceitos = termosAceitos;
+    public void setAgreeTerms(boolean agreeTerms) {
+        this.agreeTerms = agreeTerms;
     }
 
-    // Métodos de validação
-    public boolean senhasConferem() {
-        if (senha == null || confirmarSenha == null) {
-            return false;
-        }
-        return senha.equals(confirmarSenha);
-    }
-
-    public void validarSenha() {
+    // Métodos de validação melhorados
+    public void validar() {
         if (!senhasConferem()) {
             throw new IllegalArgumentException("Senha e confirmação não coincidem!");
         }
+        if (!agreeTerms) {
+            throw new IllegalArgumentException("Você deve aceitar os termos!");
+        }
     }
 
-    // Adicione outras validações conforme necessário
-    public void validarCampos() {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email é obrigatório!");
-        }
-        if (cpf == null || cpf.isBlank()) {
-            throw new IllegalArgumentException("CPF é obrigatório!");
-        }
-        // Adicione mais validações para outros campos
+    private boolean senhasConferem() {
+        return senha != null && senha.equals(confirmarSenha);
     }
 }

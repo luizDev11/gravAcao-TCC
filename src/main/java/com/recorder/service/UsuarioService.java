@@ -19,7 +19,7 @@ public class UsuarioService {
             throw new RuntimeException("As senhas não coincidem.");
         }
 
-        if (!dto.isTermosAceitos()) {
+        if (!dto.agreeTerms()) {
             throw new RuntimeException("Você deve aceitar os termos.");
         }
 
