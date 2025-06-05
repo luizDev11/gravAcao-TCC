@@ -6,13 +6,13 @@ import com.recorder.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class UsuarioService {
 
     @Autowired
     private UsuarioRepository repository;
-
-
 
     public Usuario registrar(UsuarioDTO dto) {
         if (!dto.getSenha().equals(dto.getConfirmarSenha())) {
@@ -32,8 +32,24 @@ public class UsuarioService {
         usuario.setEmail(dto.getEmail());
         usuario.setCpf(dto.getCpf());
         usuario.setTelefone(dto.getTelefone());
-        usuario.setSenha(dto.getSenha()); // criptografar em produção!
+        usuario.setSenha(dto.getSenha()); // Criptografar em produção!
 
         return repository.save(usuario);
+    }
+
+    public Usuario autenticar(String email, String senha) {
+        Optional<Usuario> usuarioOpt = repository.findByEmail(email);
+
+        if (usuarioOpt.isEmpty()) {
+            throw new IllegalArgumentException("Usuário não encontrado");
+        }
+
+        Usuario usuario = usuarioOpt.get();
+
+        if (!usuario.getSenha().equals(senha)) {
+            throw new IllegalArgumentException("Senha incorreta");
+        }
+
+        return usuario;
     }
 }
