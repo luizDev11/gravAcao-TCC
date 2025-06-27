@@ -1,117 +1,52 @@
 package com.recorder.controller.entity;
 
-
-import com.recorder.controller.entity.enuns.StatusAgendamento;
 import com.recorder.dto.AgendamentoDTO;
-import com.recorder.repository.AgendamentoRepository;
+import com.recorder.controller.entity.Agendamento;
 import com.recorder.service.AgendamentoService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.util.List;
+import java.net.URI;
 
 @RestController
-@RequestMapping("/api/agendamentos")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/agendamentos2")
 public class AgendamentoController {
 
-    @Autowired
-    private AgendamentoRepository agendamentoRepository;
-
     private final AgendamentoService agendamentoService;
-    private final AgendamentoRepository repository;
 
-    public AgendamentoController(AgendamentoService agendamentoService,
-                                 AgendamentoRepository repository) {
+    public AgendamentoController(AgendamentoService agendamentoService) {
         this.agendamentoService = agendamentoService;
-        this.repository = repository;
     }
 
-    @PostMapping
-    public ResponseEntity<Agendamento> salvar(@RequestBody Agendamento agendamento) {
-        Agendamento salvo = repository.save(agendamento);
-        return ResponseEntity.ok(salvo);
+    @PostMapping("/criar2")
+    public ResponseEntity<Agendamento> criarAgendamento(
+            @Valid @RequestBody AgendamentoDTO agendamentoDTO,
+            Authentication authentication) {
+
+        // Obtém o email do usuário autenticado
+        String emailUsuario = authentication.getName();
+
+        // Cria o agendamento
+        Agendamento novoAgendamento = agendamentoService.criarAgendamento(agendamentoDTO, emailUsuario);
+
+        // Cria a URI para o novo recurso
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(novoAgendamento.getId())
+                .toUri();
+
+        // Retorna resposta 201 (Created) com a URI do novo recurso
+        return ResponseEntity.created(location).body(novoAgendamento);
     }
-
-    @GetMapping
-    public ResponseEntity<List<Agendamento>> listar() {
-        List<Agendamento> agendamentos = repository.findAll();
-        return ResponseEntity.ok(agendamentos);
-    }
-
-    @GetMapping("/usuario/{usuarioId}")
-    public List<Agendamento> listarPorUsuario(@PathVariable Long usuarioId) {
-        return agendamentoService.buscarAgendamentosPorUsuario(usuarioId);
-    }
-
-    @GetMapping("/{id}/usuario/{usuarioId}")
-    public Agendamento buscarPorIdEUsuario(
-            @PathVariable Long id,
-            @PathVariable Long usuarioId) {
-        return agendamentoService.buscarAgendamentoDoUsuario(id, usuarioId);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Agendamento> buscarPorId(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Agendamento> atualizarStatus(
-            @PathVariable Long id,
-            @RequestParam StatusAgendamento status) {
-
-        try {
-            Agendamento atualizado = agendamentoService.atualizarStatus(id, status);
-            return ResponseEntity.ok(atualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Agendamento> atualizarAgendamento(
-            @PathVariable Long id,
-            @RequestBody Agendamento agendamentoAtualizado) {
-
-        if (!id.equals(agendamentoAtualizado.getId())) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        Agendamento atualizado = repository.save(agendamentoAtualizado);
-        return ResponseEntity.ok(atualizado);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        if (repository.existsById(id)) {
-            repository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-    @GetMapping("/api/agendamentos/{id}")
-    public ResponseEntity<AgendamentoDTO> buscarDetalhes(@PathVariable Long id) {
-        Agendamento agendamento = agendamentoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado"));
-
-        AgendamentoDTO dto = new AgendamentoDTO();
-        dto.setNomeCliente(agendamento.getNome());                 // Vem da própria entidade
-        dto.setEmail(agendamento.getEmail());                      // Vem da própria entidade
-        dto.setTelefone(agendamento.getTelefone());                // Vem da própria entidade
-        dto.setPlano(agendamento.getPlano());
-        dto.setEndereco(agendamento.getLocal());
-        dto.setData(agendamento.getDataJogo().toString());         // Ex: 2025-06-07
-        dto.setHorario(agendamento.getHorario().toString());       // Ex: 14:30
-        dto.setStatus(agendamento.getStatus().name());             // Enum convertido para texto
-
-        return ResponseEntity.ok(dto);
-    }
-
-
 }

@@ -11,15 +11,15 @@ import java.time.LocalTime;
 @Table(name = "agendamento")
 public class Agendamento {
 
+   // Relacionamento ManyToOne
+   @ManyToOne(fetch = FetchType.LAZY)
+   @JoinColumn(name = "id_usuario")
+   private Usuario usuario;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false, unique = true)
+    @Column(name = "id")
     private Long id;
-
-    // Relacionamento ManyToOne
-    @ManyToOne( fetch = FetchType.LAZY)
-    @JoinColumn(name = "idUsuario", nullable = false)
-    private Usuario usuario;
 
     @Column(name = "nome", nullable = false, length = 100)
     private String nome;
@@ -33,8 +33,8 @@ public class Agendamento {
     @Column(name = "plano", length = 50)
     private String plano;
 
-    @Column(name = "data_jogo", nullable = false)
-    private LocalDate dataJogo;
+    @Column(name = "data", nullable = false)
+    private LocalDate data;
 
     @Column(name = "horario", nullable = false)
     private LocalTime horario;
@@ -64,6 +64,8 @@ public class Agendamento {
     }
 
     // Getters e Setters (incluindo o novo campo)
+
+
     public Long getId() {
         return id;
     }
@@ -79,6 +81,7 @@ public class Agendamento {
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
     }
+
 
     public String getNome() {
         return nome;
@@ -112,12 +115,12 @@ public class Agendamento {
         this.plano = plano;
     }
 
-    public LocalDate getDataJogo() {
-        return dataJogo;
+    public LocalDate getData() {
+        return data;
     }
 
-    public void setDataJogo(LocalDate dataJogo) {
-        this.dataJogo = dataJogo;
+    public void setData(LocalDate data) {
+        this.data = data;
     }
 
     public LocalTime getHorario() {
@@ -158,5 +161,9 @@ public class Agendamento {
 
     public void setLongitude(BigDecimal longitude) {
         this.longitude = longitude;
+    }
+
+    public void setDescricao(String testePersistência) {
+
     }
 }

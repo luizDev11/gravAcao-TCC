@@ -1,12 +1,14 @@
 package com.recorder.service;
 
 import com.recorder.controller.entity.Usuario;
+import com.recorder.controller.entity.enuns.Roles;
 import com.recorder.dto.UsuarioDTO;
 import com.recorder.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class UsuarioService {
@@ -14,6 +16,13 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository repository;
 
+    private final PasswordEncoder passwordEncoder;
+
+    public UsuarioService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    // REGISTRO
     public Usuario registrar(UsuarioDTO dto) {
         if (!dto.getSenha().equals(dto.getConfirmarSenha())) {
             throw new RuntimeException("As senhas não coincidem.");
@@ -32,11 +41,13 @@ public class UsuarioService {
         usuario.setEmail(dto.getEmail());
         usuario.setCpf(dto.getCpf());
         usuario.setTelefone(dto.getTelefone());
-        usuario.setSenha(dto.getSenha()); // Criptografar em produção!
+        usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+        usuario.setRoles(Set.of(Roles.USUARIO)); // role padrão
 
         return repository.save(usuario);
     }
 
+    // LOGIN
     public Usuario autenticar(String email, String senha) {
         Optional<Usuario> usuarioOpt = repository.findByEmail(email);
 
@@ -46,10 +57,41 @@ public class UsuarioService {
 
         Usuario usuario = usuarioOpt.get();
 
-        if (!usuario.getSenha().equals(senha)) {
+        if (!passwordEncoder.matches(senha, usuario.getSenha())) {
             throw new IllegalArgumentException("Senha incorreta");
         }
 
         return usuario;
+    }
+
+    // ======== CRUD ADICIONADO AQUI ========
+
+    public List<Usuario> listarTodos() {
+        return repository.findAll();
+    }
+
+    public Usuario buscarPorId(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+    }
+
+    public Usuario atualizar(Long id, UsuarioDTO dto) {
+        Usuario usuarioExistente = buscarPorId(id);
+
+        usuarioExistente.setNome(dto.getNome());
+        usuarioExistente.setEmail(dto.getEmail());
+        usuarioExistente.setCpf(dto.getCpf());
+        usuarioExistente.setTelefone(dto.getTelefone());
+
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            usuarioExistente.setSenha(passwordEncoder.encode(dto.getSenha()));
+        }
+
+        return repository.save(usuarioExistente);
+    }
+
+    public void deletar(Long id) {
+        Usuario usuario = buscarPorId(id);
+        repository.delete(usuario);
     }
 }
