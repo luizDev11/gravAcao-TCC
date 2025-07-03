@@ -19,29 +19,26 @@ import java.util.stream.Collectors;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UsuarioRepository usuarioRepository;
+	private final UsuarioRepository usuarioRepository;
 
-    public CustomUserDetailsService(UsuarioRepository usuarioRepository) {
-        this.usuarioRepository = usuarioRepository;
-    }
+	public CustomUserDetailsService(UsuarioRepository usuarioRepository) {
+		this.usuarioRepository = usuarioRepository;
+	}
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Usuario usuario = usuarioRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+	@Override
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		Usuario usuario = usuarioRepository.findByEmail(username)
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-        // Adiciona "ROLE_" se não existir
-        List<GrantedAuthority> authorities = usuario.getRoles().stream()
-                .map(role -> {
-                    String rolesName = role.getDescricao(); // ou role.getDescricao()
-                    if (!rolesName.startsWith("ROLE_")) {
-                        rolesName = "ROLE_" + rolesName;
-                    }
-                    return new SimpleGrantedAuthority(rolesName);
-                })
-                .collect(Collectors.toList());
+		// Adiciona "ROLE_" se não existir
+		List<GrantedAuthority> authorities = usuario.getRoles().stream().map(role -> {
+			String rolesName = role.getDescricao(); // ou role.getDescricao()
+			if (!rolesName.startsWith("ROLE_")) {
+				rolesName = "ROLE_" + rolesName;
+			}
+			return new SimpleGrantedAuthority(rolesName);
+		}).collect(Collectors.toList());
 
-
-        return new User(usuario.getEmail(), usuario.getSenha(), authorities);
-    }
+		return new User(usuario.getEmail(), usuario.getSenha(), authorities);
+	}
 }

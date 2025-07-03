@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.recorder.controller.entity.enuns.Roles;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,127 +23,136 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class Usuario  implements UserDetails {
+public class Usuario implements UserDetails {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idUsuario")
-    private Long idUsuario;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "idUsuario")
+	private Long idUsuario;
 
-    @NotBlank
-    private String nome;
+	@NotBlank
+	private String nome;
 
-    @Email
-    private String email;
+	@Email
+	private String email;
 
-    @NotBlank
-    private String telefone;
+	@NotBlank
+	private String telefone;
 
-    @NotBlank
-     private String cpf;
+	@NotBlank
+	private String cpf;
 
-    @NotBlank
-    private String senha;
+	@NotBlank
+	private String senha;
 
+	@ElementCollection
+	@CollectionTable(name = "usuario_roles", joinColumns = @JoinColumn(name = "id_usuario"))
+	@Enumerated(EnumType.STRING) // Isso converte o enum para string no banco
+	@Column(name = "role")
+	@Builder.Default // Se estiver usando Lombok @Builder
+	private Set<Roles> roles = new HashSet<>();
 
-    @ElementCollection
-    @CollectionTable(name = "usuario_roles", joinColumns = @JoinColumn(name = "id_usuario"))
-    @Enumerated(EnumType.STRING) // Isso converte o enum para string no banco
-    @Column(name = "role")
-    @Builder.Default // Se estiver usando Lombok @Builder
-    private Set<Roles> roles = new HashSet<>();
+	@OneToMany(mappedBy = "usuario")
+	@JsonBackReference
+	private List<Agendamento> agendamentos;
 
-    @OneToMany(mappedBy = "usuario")
-    private List<Agendamento> agendamentos;
+	public Long getIdUsuario() {
+		return idUsuario;
+	}
 
-    public Long getIdUsuario() {
-        return idUsuario;
-    }
+	public void setIdUsuario(Long idUsuario) {
+		this.idUsuario = idUsuario;
+	}
 
-    public void setIdUsuario(Long idUsuario) {
-        this.idUsuario = idUsuario;
-    }
+	public Set<Roles> getRoles() {
+		return roles;
+	}
 
-    public Set<Roles> getRoles() {
-        return roles;
-    }
+	public void setRoles(Set<Roles> roles) {
+		this.roles = roles;
+	}
 
-    public void setRoles(Set<Roles> roles) {
-        this.roles = roles;
-    }
-    public String getSenha() {
-        return senha;
-    }
+	public String getSenha() {
+		return senha;
+	}
 
-    public void setSenha(String senha) {
-        this.senha = senha;
-    }
+	public void setSenha(String senha) {
+		this.senha = senha;
+	}
 
-    public String getCpf() {
-        return cpf;
-    }
+	public String getCpf() {
+		return cpf;
+	}
 
-    public void setCpf(String cpf) {
-        this.cpf = cpf;
-    }
+	public void setCpf(String cpf) {
+		this.cpf = cpf;
+	}
 
-    public String getNome() {
-        return nome;
-    }
+	public String getNome() {
+		return nome;
+	}
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
 
-    public String getEmail() {
-        return email;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public String getTelefone() {
-        return telefone;
-    }
+	public String getTelefone() {
+		return telefone;
+	}
 
-    public void setTelefone(String telefone) {
-        this.telefone = telefone;
-    }
+	public void setTelefone(String telefone) {
+		this.telefone = telefone;
+	}
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                .collect(Collectors.toList());
-    }
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return this.roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+				.collect(Collectors.toList());
+	}
 
-    @Override
-    public String getPassword() {
-        return this.senha;
-    }
+	@Override
+	public String getPassword() {
+		return this.senha;
+	}
 
-    @Override
-    public String getUsername() {
-        return this.email;
-    }
+	@Override
+	public String getUsername() {
+		return this.email;
+	}
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+	@Override
+	public boolean isAccountNonExpired() {
+		return true;
+	}
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+	@Override
+	public boolean isAccountNonLocked() {
+		return true;
+	}
 
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
 
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }}
+	@Override
+	public boolean isEnabled() {
+		return true;
+	}
+
+	public void addRole(Roles role) {
+		if (this.roles == null) {
+			this.roles = new HashSet<>();
+		}
+		this.roles.add(role);
+	}
+
+}

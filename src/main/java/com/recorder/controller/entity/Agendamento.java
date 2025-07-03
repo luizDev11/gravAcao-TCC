@@ -1,5 +1,6 @@
 package com.recorder.controller.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.recorder.controller.entity.enuns.StatusAgendamento;
 import jakarta.persistence.*;
 
@@ -14,6 +15,7 @@ public class Agendamento {
    // Relacionamento ManyToOne
    @ManyToOne(fetch = FetchType.LAZY)
    @JoinColumn(name = "id_usuario")
+   @JsonManagedReference 
    private Usuario usuario;
 
     @Id

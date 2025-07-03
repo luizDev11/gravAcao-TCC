@@ -20,9 +20,7 @@ public class AgendamentoService {
     @Transactional
     public Agendamento criarAgendamento(AgendamentoDTO dto, String emailUsuario) {
         // Busca o usuário pelo e-mail do token
-        if (true) {
-            throw new RuntimeException("ERRO TESTE: forçando erro para ver no console");
-        }
+       
 
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + emailUsuario));

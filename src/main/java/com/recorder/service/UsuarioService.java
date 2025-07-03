@@ -42,7 +42,7 @@ public class UsuarioService {
         usuario.setCpf(dto.getCpf());
         usuario.setTelefone(dto.getTelefone());
         usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
-        usuario.setRoles(Set.of(Roles.USUARIO)); // role padrão
+        usuario.setRoles(Set.of(Roles.ROLE_USUARIO)); // role padrão
 
         return repository.save(usuario);
     }

@@ -1,5 +1,8 @@
 package com.recorder.dto;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import jakarta.validation.constraints.*;
 
 public class UsuarioDTO {
@@ -86,6 +89,26 @@ public class UsuarioDTO {
 
     public void setAgreeTerms(boolean agreeTerms) {
         this.agreeTerms = agreeTerms;
+    }
+
+    private List<String> roles;
+
+    // Método para garantir o formato ROLE_
+    public List<String> getRoles() {
+        if (this.roles == null) {
+            return List.of("ROLE_USUARIO"); // Valor padrão
+        }
+        return this.roles.stream()
+                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                .collect(Collectors.toList());
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles != null ? 
+                roles.stream()
+                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                        .collect(Collectors.toList()) : 
+                List.of("ROLE_USUARIO");
     }
 
     // Métodos de validação melhorados
