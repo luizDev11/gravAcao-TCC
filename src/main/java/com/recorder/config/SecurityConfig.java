@@ -4,11 +4,11 @@ import com.recorder.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer; // Import this
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -18,7 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -35,30 +34,32 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
-				.cors()
-				.and()
-				.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth
-				// Rotas públicas
-				.requestMatchers("/api/auth/**", "/api/usuarios/**", "/swagger-ui/**", "/v3/api-docs/**",
-						"/api/agendamentos2")
-				.permitAll()
+				// Use Customizer.withDefaults() to apply the CorsConfigurationSource bean
+				.cors(Customizer.withDefaults()) // ✨ CORREÇÃO AQUI ✨
+				// .and() // Remove this, it's no longer needed with the newer fluent API
+				.csrf(csrf -> csrf.disable())
+				.authorizeHttpRequests(auth -> auth
+						// Rotas públicas
+						.requestMatchers("/api/auth/**", "/api/usuarios/**", "/swagger-ui/**", "/v3/api-docs/**",
+								"/api/agendamentos2")
+						.permitAll()
 
-				.requestMatchers("/api/auth/validate-token").authenticated()
+						.requestMatchers("/api/auth/validate-token").authenticated()
 
-				.requestMatchers("/api/agendamentos2/criar2").authenticated()
+						.requestMatchers("/api/agendamentos2/criar2").authenticated()
 
-				// Rotas administrativas - usando ROLE_ explicitamente
-				.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+						// Rotas administrativas - usando ROLE_ explicitamente
+						.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
-				// Rotas para profissionais
-				.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
+						// Rotas para profissionais
+						.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
 
-				// Rotas de agendamento
-				.requestMatchers("/api/agendamentos/**")
-				.hasAnyAuthority("ROLE_USUARIO", "ROLE_PROFISSIONAL", "ROLE_ADMIN")
+						// Rotas de agendamento
+						.requestMatchers("/api/agendamentos/**")
+						.hasAnyAuthority("ROLE_USUARIO", "ROLE_PROFISSIONAL", "ROLE_ADMIN")
 
-				// Todas as outras requisições
-				.anyRequest().authenticated())
+						// Todas as outras requisições
+						.anyRequest().authenticated())
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class).build();
 	}
@@ -73,18 +74,19 @@ public class SecurityConfig {
 		return config.getAuthenticationManager();
 	}
 
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
+		// It's generally better to specify exact origins than allow all ("*") for security reasons.
+		// If you truly need to allow all, be aware of the security implications.
+		// config.setAllowedOrigins(List.of("http://127.0.0.1:5000", "http://localhost:5000", "http://your-frontend-domain.com"));
+		config.setAllowedOriginPatterns(List.of("*")); // For development, but restrict in production.
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+		config.setAllowCredentials(true); // Needed if using JWT or cookies with CORS
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        //config.setAllowedOrigins(List.of("http://127.0.0.1:5000", "http://localhost:5000"));
-        config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
-        config.setAllowCredentials(true); // Necessário se usar JWT ou cookies
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
+	}
 }

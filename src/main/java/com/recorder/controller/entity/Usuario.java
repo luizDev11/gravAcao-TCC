@@ -39,8 +39,10 @@ public class Usuario implements UserDetails {
 	@NotBlank
 	private String telefone;
 
-	@NotBlank
 	private String cpf;
+
+	@Column(length = 18) // CNPJ tem 14 dígitos, mas pode ter máscara, então 18 é um bom tamanho
+	private String cnpj; // Pode ser nulo se for um usuário comum
 
 	@NotBlank
 	private String senha;
@@ -111,6 +113,10 @@ public class Usuario implements UserDetails {
 	public void setTelefone(String telefone) {
 		this.telefone = telefone;
 	}
+
+	public String getCnpj() {return cnpj; }
+
+	public void setCnpj(String cnpj) {this.cnpj = cnpj; }
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {

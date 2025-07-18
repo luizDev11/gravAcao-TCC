@@ -18,7 +18,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -34,14 +33,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 	}
 
 	@Override
-	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-			@NonNull FilterChain filterChain) throws ServletException, IOException {
+	protected void doFilterInternal(@NonNull HttpServletRequest request,
+									@NonNull HttpServletResponse response,
+									@NonNull FilterChain filterChain)
+			throws ServletException, IOException {
+
+		// Configura headers CORS
+		response.setHeader("Access-Control-Allow-Origin", "*");
+		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+		response.setHeader("Access-Control-Expose-Headers", "Authorization");
+
+		// Para requisições OPTIONS, retorne imediatamente
+		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+			response.setStatus(HttpServletResponse.SC_OK);
+			return;
+		}
+
+		// Ignora endpoints públicos (ajuste conforme suas rotas públicas)
+		if (request.getServletPath().startsWith("/api/auth/") ||
+				request.getServletPath().equals("/api/usuario/registrar")) {
+			filterChain.doFilter(request, response);
+			return;
+		}
 
 		final String authHeader = request.getHeader("Authorization");
 
-		// Se não houver token, continue (o SecurityConfig bloqueará endpoints
-		// protegidos)
+		// Se não houver token, continue (o SecurityConfig bloqueará endpoints protegidos)
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			logger.warn("Requisição sem token JWT para: {}", request.getRequestURI());
 			filterChain.doFilter(request, response);
 			return;
 		}
@@ -52,6 +72,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 			if (userEmail == null) {
 				logger.error("Token JWT não contém email válido");
+				SecurityContextHolder.clearContext();
 				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
 				return;
 			}
@@ -59,30 +80,44 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			if (SecurityContextHolder.getContext().getAuthentication() == null) {
 				UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-				if (jwtService.isTokenValid(jwt, userDetails)) {
-					// Extrai a role usando o novo método do JwtService
-					String role = jwtService.extractRole(jwt);
-
-					if (role == null) {
-						logger.error("Token sem role definida para usuário: {}", userEmail);
-						response.sendError(HttpServletResponse.SC_FORBIDDEN, "Token sem permissões definidas");
-						return;
-					}
-
-					// Cria a autenticação com a authority
-					UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-							null, Collections.singletonList(new SimpleGrantedAuthority(role)));
-
-					authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-					SecurityContextHolder.getContext().setAuthentication(authToken);
-					logger.debug("Usuário autenticado: {} com role: {}", userEmail, role);
+				if (userDetails == null) {
+					logger.error("Usuário não encontrado para o email: {}", userEmail);
+					SecurityContextHolder.clearContext();
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Usuário não encontrado");
+					return;
 				}
+
+				if (!jwtService.isTokenValid(jwt, userDetails)) {
+					logger.error("Token inválido para o usuário: {}", userEmail);
+					SecurityContextHolder.clearContext();
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
+					return;
+				}
+
+				String role = jwtService.extractRole(jwt);
+				if (role == null) {
+					logger.error("Token sem role definida para usuário: {}", userEmail);
+					SecurityContextHolder.clearContext();
+					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Token sem permissões definidas");
+					return;
+				}
+
+				UsernamePasswordAuthenticationToken authToken =
+						new UsernamePasswordAuthenticationToken(
+								userDetails,
+								null,
+								Collections.singletonList(new SimpleGrantedAuthority(role)));
+
+				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				SecurityContextHolder.getContext().setAuthentication(authToken);
+				logger.debug("Usuário autenticado: {} com role: {}", userEmail, role);
 			}
 
 			filterChain.doFilter(request, response);
 
 		} catch (Exception e) {
 			logger.error("Falha na autenticação JWT", e);
+			SecurityContextHolder.clearContext();
 			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falha na autenticação: " + e.getMessage());
 		}
 	}

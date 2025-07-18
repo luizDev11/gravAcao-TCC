@@ -10,9 +10,9 @@ public class UsuarioDTO {
     @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
     private String nome;
 
-    @NotBlank(message = "CPF é obrigatório")
-    @Pattern(regexp = "\\d{11}", message = "CPF deve conter 11 dígitos")
     private String cpf;
+
+    private String cnpj;
 
     @NotBlank(message = "Telefone é obrigatório")
     @Pattern(regexp = "\\d{10,11}", message = "Telefone inválido")
@@ -33,6 +33,16 @@ public class UsuarioDTO {
     private boolean agreeTerms;
 
     // Getters e Setters mantidos iguais
+
+
+    public String getCnpj() {
+        return cnpj;
+    }
+
+    public void setCnpj(String cnpj) {
+        this.cnpj = cnpj;
+    }
+
     public String getNome() {
         return nome;
     }
