@@ -13,7 +13,7 @@
 	<groupId>com.recorder</groupId>
 	<artifactId>recorder</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+
 	<name>recorder-src</name>
 	<description>recorder-src</description>
 

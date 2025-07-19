@@ -4,7 +4,6 @@ import com.recorder.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer; // Import this
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,7 +16,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
+import java.util.Arrays; // Importar Arrays
 
 @Configuration
 @EnableWebSecurity
@@ -34,34 +33,45 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
-				// Use Customizer.withDefaults() to apply the CorsConfigurationSource bean
-				.cors(Customizer.withDefaults()) // ✨ CORREÇÃO AQUI ✨
-				// .and() // Remove this, it's no longer needed with the newer fluent API
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
-						// Rotas públicas
-						.requestMatchers("/api/auth/**", "/api/usuarios/**", "/swagger-ui/**", "/v3/api-docs/**",
-								"/api/agendamentos2")
-						.permitAll()
+						// 1. ROTAS QUE EXIGEM AUTENTICAÇÃO E/OU AUTORIZAÇÃO ESPECÍFICA (MAIS ESPECÍFICAS PRIMEIRO)
+						// Esta deve vir antes de qualquer .permitAll() que inclua /api/auth/**
+						.requestMatchers("/api/auth/validate-token").authenticated() // EXIGE TOKEN VÁLIDO
 
-						.requestMatchers("/api/auth/validate-token").authenticated()
-
+						// Rotas que EXIGEM autenticação (outras rotas que requerem token, como criar2)
 						.requestMatchers("/api/agendamentos2/criar2").authenticated()
 
-						// Rotas administrativas - usando ROLE_ explicitamente
+						// ✨ NOVO: Rotas de agendamento2 agora exigem autenticação.
+						// A autorização por role será feita via @PreAuthorize no AgendamentoController.
+						.requestMatchers("/api/agendamentos2/**").authenticated() // ✨ ADICIONADO/AJUSTADO AQUI ✨
+
+						// Rotas administrativas (requerem ROLE_ADMIN)
 						.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
-						// Rotas para profissionais
+						// Rotas para profissionais (requerem ROLE_PROFISSIONAL)
 						.requestMatchers("/api/profissional/**").hasAuthority("ROLE_PROFISSIONAL")
 
-						// Rotas de agendamento
+						// Rotas de agendamento (requerem qualquer uma das roles especificadas)
 						.requestMatchers("/api/agendamentos/**")
 						.hasAnyAuthority("ROLE_USUARIO", "ROLE_PROFISSIONAL", "ROLE_ADMIN")
 
-						// Todas as outras requisições
+						// 2. ROTAS PÚBLICAS (NÃO EXIGEM AUTENTICAÇÃO OU AUTORIZAÇÃO)
+						// O login ('/api/auth/authenticate') DEVE estar aqui.
+						// Todas as rotas genéricas .permitAll() devem vir DEPOIS das regras específicas.
+						.requestMatchers("/api/auth/authenticate", // Rota de login (sem token)
+								"/api/usuarios/**",       // Criação de usuário, etc.
+								"/swagger-ui/**",         // Swagger UI
+								"/v3/api-docs/**")        // OpenAPI Docs
+						// REMOVIDO: "/api/agendamentos2" daqui, pois agora é .authenticated()
+						.permitAll()
+
+						// 3. TODAS AS OUTRAS REQUISIÇÕES (EXIGEM AUTENTICAÇÃO)
 						.anyRequest().authenticated())
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class).build();
+				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+				.build();
 	}
 
 	@Bean
@@ -77,16 +87,30 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		// It's generally better to specify exact origins than allow all ("*") for security reasons.
-		// If you truly need to allow all, be aware of the security implications.
-		// config.setAllowedOrigins(List.of("http://127.0.0.1:5000", "http://localhost:5000", "http://your-frontend-domain.com"));
-		config.setAllowedOriginPatterns(List.of("*")); // For development, but restrict in production.
-		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-		config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
-		config.setAllowCredentials(true); // Needed if using JWT or cookies with CORS
+
+		// ✨ Ajuste das Origens Permitidas ✨
+		// O erro indica que "http://127.0.0.1:5000" está sendo bloqueado.
+		// Listar ambas as variações de localhost é bom.
+		// Adicionar o próprio backend como origem permitida é redundante e pode mascarar o problema.
+		// Se seu frontend está em http://127.0.0.1:5000, essa é a única origem que importa para o CORS.
+		config.setAllowedOrigins(Arrays.asList(
+				"http://127.0.0.1:5000",
+				"http://localhost:5000"
+		));
+
+		// Se você quisesse usar padrões (mais flexível para desenvolvimento), seria:
+		// config.setAllowedOriginPatterns(Arrays.asList(
+		//     "http://127.0.0.1:*", // Permite qualquer porta para 127.0.0.1
+		//     "http://localhost:*"  // Permite qualquer porta para localhost
+		// ));
+
+		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Métodos HTTP permitidos
+		config.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type")); // Cabeçalhos permitidos
+		config.setAllowCredentials(true); // Crucial: Permite o envio de cookies/cabeçalhos de autorização
+		config.setMaxAge(3600L); // Tempo de cache para preflight requests (em segundos)
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", config);
+		source.registerCorsConfiguration("/**", config); // Aplica esta configuração CORS a todas as rotas
 		return source;
 	}
 }

@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Date;
 
 @RestController
-@CrossOrigin // Permite todas as origens (apenas para desenvolvimento!)
 public class TesteConexaoController {
 
     @GetMapping("/api/teste-conexao")

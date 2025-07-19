@@ -16,8 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -89,5 +91,15 @@ public class AuthController {
 		}
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 	}
+	@GetMapping("/after-login")
+	public String afterLogin() {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
+		if (auth != null && auth.getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_PROFISSIONAL"))) {
+			return "redirect:/inicialAdmin";  // Redireciona para a página do Admin/Profissional
+		} else {
+			return "redirect:/inicial";  // Redireciona para a página padrão (ex: home.html)
+		}
+	}
 }

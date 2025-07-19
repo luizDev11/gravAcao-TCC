@@ -39,10 +39,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		// Configura headers CORS
-		response.setHeader("Access-Control-Allow-Origin", "*");
+		// Configura headers CORS
+		response.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5000");
+		response.setHeader("Access-Control-Allow-Credentials", "true");
 		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
 		response.setHeader("Access-Control-Expose-Headers", "Authorization");
+
 
 		// Para requisições OPTIONS, retorne imediatamente
 		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {

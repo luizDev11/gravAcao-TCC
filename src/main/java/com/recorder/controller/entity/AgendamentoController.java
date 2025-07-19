@@ -35,7 +35,7 @@ import java.util.Optional;
 @Slf4j // Adiciona automaticamente o logger
 @RestController
 @RequestMapping("/api/agendamentos2")
-@PreAuthorize("hasRole('ROLE_USUARIO')")
+@PreAuthorize("hasAnyRole('ROLE_USUARIO', 'ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
 public class AgendamentoController {
 
 	private final AgendamentoService agendamentoService;
