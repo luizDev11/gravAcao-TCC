@@ -47,10 +47,10 @@ public class Agendamento {
     @Column(name = "local", length = 200)
     private String local;
 
-    @Column(name = "latitude", precision = 10, scale = 6)
+    @Column(name = "latitude", precision = 20, scale = 15)
     private BigDecimal latitude;
 
-    @Column(name = "longitude", precision = 10, scale = 6)
+    @Column(name = "longitude", precision = 20, scale = 15)
     private BigDecimal longitude;
 
     @Enumerated(EnumType.STRING) // Armazena o nome do enum no banco
@@ -165,7 +165,7 @@ public class Agendamento {
         this.longitude = longitude;
     }
 
-    public void setDescricao(String testePersistência) {
+    //public void setDescricao(String testePersistência) {
 
-    }
+
 }

@@ -3,8 +3,8 @@ package com.recorder.controller.entity;
 import com.recorder.dto.AgendamentoDTO;
 import com.recorder.repository.AgendamentoRepository;
 import com.recorder.repository.UsuarioRepository;
-import com.recorder.controller.entity.Agendamento;
 import com.recorder.service.AgendamentoService;
+import com.recorder.controller.entity.enuns.StatusAgendamento; // ✨ Certifique-se que este import está presente! ✨
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -19,20 +19,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j // Adiciona automaticamente o logger
+@Slf4j
 @RestController
 @RequestMapping("/api/agendamentos2")
 @PreAuthorize("hasAnyRole('ROLE_USUARIO', 'ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
@@ -43,38 +37,34 @@ public class AgendamentoController {
 	private final AgendamentoRepository agendamentoRepository;
 
 	public AgendamentoController(AgendamentoService agendamentoService, UsuarioRepository usuarioRepository,
-			AgendamentoRepository agendamentoRepository) {
+								 AgendamentoRepository agendamentoRepository) {
 		this.agendamentoRepository = agendamentoRepository;
 		this.usuarioRepository = usuarioRepository;
 		this.agendamentoService = agendamentoService;
 	}
 
 	@PostMapping("/criar2")
+	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
 	public ResponseEntity<Agendamento> criarAgendamento(@Valid @RequestBody AgendamentoDTO agendamentoDTO,
-			Authentication authentication) {
-		// Obtém o email do usuário autenticado
+														Authentication authentication) {
 		String emailUsuario = authentication.getName();
-
-		// agendamentoService.criarAgendamento(agendamentoDTO, emailUsuario);
 
 		log.info("Iniciando criação de agendamento - Usuário autenticado: {}", authentication.getName());
 		log.debug("Dados recebidos no DTO: {}", agendamentoDTO);
 
-		// Cria o agendamento
 		Agendamento novoAgendamento = agendamentoService.criarAgendamento(agendamentoDTO, emailUsuario);
 		log.info("Agendamento criado com ID: {}", novoAgendamento.getId());
 
-		// Cria a URI para o novo recurso
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
 				.buildAndExpand(novoAgendamento.getId()).toUri();
 
 		log.info("Agendamento persistido com sucesso. Location: {}", location);
 
-		// Retorna resposta 201 (Created) com a URI do novo recurso
 		return ResponseEntity.created(location).body(novoAgendamento);
 	}
 
 	@GetMapping("/meus-agendamentos")
+	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
 	public ResponseEntity<List<Agendamento>> getAgendamentosDoUsuario(
 			@AuthenticationPrincipal UserDetails userDetails) {
 		String email = userDetails.getUsername();
@@ -83,23 +73,20 @@ public class AgendamentoController {
 	}
 
 	@GetMapping
+	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
 	public ResponseEntity<List<Agendamento>> getMeusAgendamentos(@AuthenticationPrincipal UserDetails userDetails) {
-
-		// 1. Busca o usuário autenticado
 		Usuario usuario = usuarioRepository.findByEmail(userDetails.getUsername())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-		// 2. Busca os agendamentos do usuário
 		List<Agendamento> agendamentos = agendamentoRepository.findByUsuario(usuario);
 
 		return ResponseEntity.ok(agendamentos);
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ROLE_USUARIO')") // Adicionei esta permissão explícita
 	public ResponseEntity<?> deletarAgendamento(@PathVariable Long id,
-			@AuthenticationPrincipal UserDetails userDetails) {
-
-		// 1. Buscar o agendamento pelo id
+												@AuthenticationPrincipal UserDetails userDetails) {
 		Optional<Agendamento> agendamentoOpt = agendamentoRepository.findById(id);
 		if (agendamentoOpt.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Agendamento não encontrado");
@@ -107,20 +94,71 @@ public class AgendamentoController {
 
 		Agendamento agendamento = agendamentoOpt.get();
 
-		// 2. Buscar usuário logado pelo email do token
 		Usuario usuario = usuarioRepository.findByEmail(userDetails.getUsername())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-		// 3. Verificar se o agendamento pertence ao usuário logado
 		if (!agendamento.getUsuario().getIdUsuario().equals(usuario.getIdUsuario())) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Você não pode deletar este agendamento");
 		}
 
-		// 4. Deletar o agendamento
 		agendamentoRepository.delete(agendamento);
 
-		// 5. Retornar sucesso
 		return ResponseEntity.ok().body("Agendamento deletado com sucesso");
 	}
 
+	// --- NOVOS ENDPOINTS PARA PROFISSIONAL ---
+
+	@GetMapping("/pendentes")
+	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+	@Operation(summary = "Lista todos os agendamentos pendentes para aceitação/rejeição",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Lista de agendamentos pendentes"),
+					@ApiResponse(responseCode = "403", description = "Acesso negado")
+			})
+	public ResponseEntity<List<Agendamento>> getAgendamentosPendentes() {
+		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.PENDENTE ✨
+		List<Agendamento> agendamentos = agendamentoService.getAgendamentosByStatus(StatusAgendamento.PENDENTE);
+		return ResponseEntity.ok(agendamentos);
+	}
+
+	@GetMapping("/confirmados") // ✨ Nome do endpoint ajustado para refletir o enum "CONFIRMADO" ✨
+	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+	@Operation(summary = "Lista todos os agendamentos confirmados pelo profissional",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Lista de agendamentos confirmados"),
+					@ApiResponse(responseCode = "403", description = "Acesso negado")
+			})
+	public ResponseEntity<List<Agendamento>> getAgendamentosConfirmados() { // ✨ Nome do método ajustado ✨
+		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.CONFIRMADO ✨
+		List<Agendamento> agendamentos = agendamentoService.getAgendamentosByStatus(StatusAgendamento.CONFIRMADO);
+		return ResponseEntity.ok(agendamentos);
+	}
+
+	@PutMapping("/confirmar/{id}") // ✨ Nome do endpoint ajustado para refletir o enum "CONFIRMADO" ✨
+	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+	@Operation(summary = "Confirma um agendamento específico",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Agendamento confirmado com sucesso"),
+					@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
+					@ApiResponse(responseCode = "403", description = "Acesso negado ou agendamento já processado")
+			})
+	public ResponseEntity<Agendamento> confirmarAgendamento(@PathVariable Long id) { // ✨ Nome do método ajustado ✨
+		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.CONFIRMADO ✨
+		Agendamento agendamentoAtualizado = agendamentoService.updateAgendamentoStatus(id, StatusAgendamento.CONFIRMADO);
+		return ResponseEntity.ok(agendamentoAtualizado);
+	}
+
+	@PutMapping("/recusar/{id}") // ✨ Nome do endpoint ajustado para refletir o enum "RECUSADO" ✨
+	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')")
+	@Operation(summary = "Recusa um agendamento específico",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Agendamento recusado com sucesso"),
+					@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
+					@ApiResponse(responseCode = "403", description = "Acesso negado ou agendamento já processado")
+			})
+	public ResponseEntity<Agendamento> recusarAgendamento(@PathVariable Long id) { // ✨ Nome do método ajustado ✨
+		// ✨ CORREÇÃO AQUI: Passando o ENUM StatusAgendamento.RECUSADO ✨
+		Agendamento agendamentoAtualizado = agendamentoService.updateAgendamentoStatus(id, StatusAgendamento.RECUSADO);
+		return ResponseEntity.ok(agendamentoAtualizado);
+	}
 }

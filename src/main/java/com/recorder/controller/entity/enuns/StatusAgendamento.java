@@ -6,6 +6,7 @@ public enum StatusAgendamento {
     CONFIRMADO("Confirmado", "Agendamento confirmado e válido"),
     RECUSADO("Recusado", "Agendamento recusado ou cancelado");
 
+
     private final String descricao;
     private final String detalhes;
 

@@ -51,16 +51,18 @@ public class AgendamentoDTO {
     private String local;
 
     @NotNull(message = "Latitude é obrigatória")
-    @Digits(integer = 3, fraction = 6, message = "Latitude deve ter no máximo 3 dígitos inteiros e 6 decimais")
+    @DecimalMin(value = "-90.0", message = "Latitude mínima é -90.0")
+    @DecimalMax(value = "90.0", message = "Latitude máxima é 90.0")
     @Schema(description = "Coordenada de latitude", example = "-23.550520")
     private BigDecimal latitude;
 
     @NotNull(message = "Longitude é obrigatória")
-    @Digits(integer = 3, fraction = 6, message = "Longitude deve ter no máximo 3 dígitos inteiros e 6 decimais")
+    @DecimalMin(value = "-180.0", message = "Longitude mínima é -180.0")
+    @DecimalMax(value = "180.0", message = "Longitude máxima é 180.0")
     @Schema(description = "Coordenada de longitude", example = "-46.633308")
     private BigDecimal longitude;
 
-    @Schema(description = "Status do agendamento", example = "PENDENTE", allowableValues = {"PENDENTE", "CONFIRMADO", "CANCELADO"})
+    @Schema(description = "Status do agendamento", example = "PENDENTE", allowableValues = {"PENDENTE", "ACEITO", "REJEITADO", "CANCELADO"}, nullable = true) // Ajustado aqui
     private StatusAgendamento status = StatusAgendamento.PENDENTE;
 
     // Construtor padrão
@@ -108,7 +110,7 @@ public class AgendamentoDTO {
     }
 
     public StatusAgendamento getStatus() {
-        return status;
+       return status;
     }
 
     // Setters
@@ -152,9 +154,9 @@ public class AgendamentoDTO {
         this.longitude = longitude;
     }
 
-    public void setStatus(StatusAgendamento status) {
+   public void setStatus(StatusAgendamento status) {
         this.status = status;
-    }
+   }
 
     // Método para conversão de Entidade para DTO
     public static AgendamentoDTO fromEntity(Agendamento agendamento) {
