@@ -76,7 +76,11 @@ public class AuthController {
 				 */
 				).build());
 	}
-	  
+	@PostMapping("/logout")
+	public ResponseEntity<?> logoutUser(HttpServletRequest request) {
+		// Aqui você pode invalidar o token se estiver usando blacklist
+		return ResponseEntity.ok().body("Logout realizado com sucesso");
+	}
 
 	@GetMapping("/validate-token")
 	public ResponseEntity<?> validateToken(HttpServletRequest request,

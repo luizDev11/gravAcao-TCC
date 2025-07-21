@@ -105,7 +105,27 @@ public class AgendamentoController {
 
 		return ResponseEntity.ok().body("Agendamento deletado com sucesso");
 	}
+	// ✨ NOVO MÉTODO: Endpoint para buscar um único agendamento por ID ✨
+	@GetMapping("/{id}")
+	@PreAuthorize("hasAnyRole('ROLE_PROFISSIONAL', 'ROLE_ADMIN')") // Ajuste as roles conforme sua necessidade
+	@Operation(summary = "Busca um agendamento específico por ID",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Agendamento encontrado com sucesso"),
+					@ApiResponse(responseCode = "404", description = "Agendamento não encontrado"),
+					@ApiResponse(responseCode = "403", description = "Acesso negado")
+			})
+	public ResponseEntity<Agendamento> getAgendamentoById(@PathVariable Long id) {
+		log.info("Buscando agendamento com ID: {}", id);
+		Optional<Agendamento> agendamento = agendamentoService.getAgendamentoById(id);
 
+		if (agendamento.isPresent()) {
+			log.info("Agendamento ID {} encontrado.", id);
+			return ResponseEntity.ok(agendamento.get());
+		} else {
+			log.warn("Agendamento ID {} não encontrado.", id);
+			return ResponseEntity.notFound().build();
+		}
+	}
 	// --- NOVOS ENDPOINTS PARA PROFISSIONAL ---
 
 	@GetMapping("/pendentes")

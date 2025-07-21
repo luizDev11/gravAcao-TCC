@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -79,6 +80,9 @@ public class AgendamentoService {
         agendamento.setStatus(newStatus);
         log.info("Agendamento ID {} atualizado para status: {}", id, newStatus);
         return agendamentoRepository.save(agendamento);
+    }
+    public Optional<Agendamento> getAgendamentoById(Long id) {
+        return agendamentoRepository.findById(id); // Usa o método findById do JpaRepository
     }
 }
 

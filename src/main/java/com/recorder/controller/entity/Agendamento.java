@@ -44,7 +44,7 @@ public class Agendamento {
     @Column(name = "esporte", nullable = false, length = 50)
     private String esporte;
 
-    @Column(name = "local", length = 200)
+    @Column(name = "local", length = 1000)
     private String local;
 
     @Column(name = "latitude", precision = 20, scale = 15)

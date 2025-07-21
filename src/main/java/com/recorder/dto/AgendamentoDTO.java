@@ -46,7 +46,7 @@ public class AgendamentoDTO {
     private String esporte;
 
     @NotBlank(message = "Local é obrigatório")
-    @Size(max = 200, message = "Local não pode exceder 200 caracteres")
+    @Size(max = 2000, message = "Local não pode exceder 200 caracteres")
     @Schema(description = "Local do agendamento", example = "Quadra Central")
     private String local;
 
